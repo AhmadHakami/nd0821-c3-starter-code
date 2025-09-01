@@ -1,43 +1,60 @@
 Working in a command line environment is recommended for ease of use with git and dvc. If on Windows, WSL1 or 2 is recommended.
 
 # Environment Set up
-* Download and install conda if you don’t have it already.
-    * Use the supplied requirements file to create a new environment, or
-    * conda create -n [envname] "python=3.8" scikit-learn pandas numpy pytest jupyter jupyterlab fastapi uvicorn -c conda-forge
-    * Install git either through conda (“conda install git”) or through your CLI, e.g. sudo apt-get git.
+* Recommended Python: 3.8 (the starter/requirements.txt targets Python 3.8).
+* Create a conda environment or use your preferred environment manager.
+
+Suggested conda command:
+
+conda create -n ml-dev python=3.8 && conda activate ml-dev
+
+Install dependencies (from the starter requirements file):
+
+pip install -r starter/requirements.txt
+
+* Install git if needed (e.g., sudo apt-get install git).
 
 ## Repositories
 * Create a directory for the project and initialize git.
-    * As you work on the code, continually commit changes. Trained models you want to use in production must be committed to GitHub.
+  * Commit changes frequently. Data and large trained artifacts are stored under starter/model in this repository for the exercise.
 * Connect your local git repo to GitHub.
-* Setup GitHub Actions on your repo. You can use one of the pre-made GitHub Actions if at a minimum it runs pytest and flake8 on push and requires both to pass without error.
-    * Make sure you set up the GitHub Action to have the same version of Python as you used in development.
+* Setup GitHub Actions to run tests (pytest) and linting (flake8) on push.
 
 # Data
-* Download census.csv and commit it to dvc.
-* This data is messy, try to open it in pandas and see what you get.
-* To clean it, use your favorite text editor to remove all spaces.
+* Raw and cleaned data paths in the repo:
+  - Raw (messy) data: starter/data/census.csv
+  - Cleaned data: starter/data/census_clean.csv
+* The training script reads starter/data/census_clean.csv by default.
 
 # Model
-* Using the starter code, write a machine learning model that trains on the clean data and saves the model. Complete any function that has been started.
-* Write unit tests for at least 3 functions in the model code.
-* Write a function that outputs the performance of the model on slices of the data.
-    * Suggestion: for simplicity, the function can just output the performance on slices of just the categorical features.
-* Write a model card using the provided template.
+* Training script (module): python -m starter.starter.train_model
+  - This trains the model and saves artifacts to starter/model/ (model.joblib, encoder.joblib, lb.joblib, metrics.json, slice_output.txt).
+* Model utilities and data processing are in starter/starter/ml/
+* Metrics and per-slice output are saved to starter/model/metrics.json and starter/model/slice_output.txt
+
+# Tests
+* Unit tests are in starter/tests. Run them from the repository root:
+
+pytest -q
 
 # API Creation
-*  Create a RESTful API using FastAPI this must implement:
-    * GET on the root giving a welcome message.
-    * POST that does model inference.
-    * Type hinting must be used.
-    * Use a Pydantic model to ingest the body from POST. This model should contain an example.
-   	 * Hint: the data has names with hyphens and Python does not allow those as variable names. Do not modify the column names in the csv and instead use the functionality of FastAPI/Pydantic/etc to deal with this.
-* Write 3 unit tests to test the API (one for the GET and two for POST, one that tests each prediction).
+* API implementation: starter/main.py (FastAPI)
+  * Root GET returns a welcome message.
+  * POST endpoint performs model inference using saved artifacts in starter/model/.
+* Run the API locally:
+
+uvicorn starter.main:app --reload --port 8000
+
+* For production-style serving (Heroku or similar), use Gunicorn with Uvicorn worker:
+
+gunicorn -k uvicorn.workers.UvicornWorker starter.main:app
 
 # API Deployment
-* Create a free Heroku account (for the next steps you can either use the web GUI or download the Heroku CLI).
-* Create a new app and have it deployed from your GitHub repository.
-    * Enable automatic deployments that only deploy if your continuous integration passes.
-    * Hint: think about how paths will differ in your local environment vs. on Heroku.
-    * Hint: development in Python is fast! But how fast you can iterate slows down if you rely on your CI/CD to fail before fixing an issue. I like to run flake8 locally before I commit changes.
-* Write a script that uses the requests module to do one POST on your live API.
+* Create a Heroku (or other) app and deploy from your GitHub repository.
+  * Enable automatic deployments that only deploy if CI passes.
+  * Configure environment variables and storage access as needed for your deployment.
+* A simple script using the requests module can POST to the live API for smoke testing.
+
+# Notes
+* The repository contains a model card template at starter/model_card_template.md.
+* If you change Python version, ensure CI and the starter/requirements.txt are kept consistent.
